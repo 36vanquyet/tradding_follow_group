@@ -81,6 +81,12 @@ Run without reload for scheduled use:
 .\scripts\start_bot.ps1
 ```
 
+If you run it manually from PowerShell, use:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start_bot.ps1 -Silent
+```
+
 If PowerShell execution policy blocks `.ps1` files, use the `.cmd` wrappers:
 
 ```powershell

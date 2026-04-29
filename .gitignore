@@ -23,6 +23,7 @@ env/
 *.sqlite
 *.sqlite3
 *.session
+*.session-journal
 
 # Logs
 *.log
