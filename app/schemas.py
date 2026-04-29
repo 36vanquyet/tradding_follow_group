@@ -12,6 +12,22 @@ class ParsedSignal:
 
 
 @dataclass
+class NormalizedTelegramMessage:
+    kind: str
+    status: str
+    parser_source: str
+    confidence: float
+    reason: str
+    symbol: str = ""
+    side: str = ""
+    entry_price: float = 0.0
+    stop_loss: float = 0.0
+    tp1: float = 0.0
+    tp2: float = 0.0
+    normalized_json: str = ""
+
+
+@dataclass
 class AIDecision:
     approve: bool
     confidence: float

@@ -6,8 +6,9 @@ This bot does five things:
 2. Parse futures signals and filter them through AI.
 3. Calculate isolated futures leverage from the stop loss distance, then place entry, SL, TP1 and TP2 on Bybit.
 4. Save signal, order and PnL history in SQLite.
-5. Save Telegram message receive/parse/skip/error state in JSON.
-6. Show a localhost dashboard and accept Telegram control commands.
+5. Use OpenAI to normalize Telegram messages into JSON, with regex fallback.
+6. Save Telegram message receive/parse/skip/error state in JSON.
+7. Show a localhost dashboard and accept Telegram control commands.
 
 ## Risk model
 
@@ -139,6 +140,7 @@ Telegram message tracking:
 
 - The dashboard now shows each Telegram message with `RECEIVED`, `PARSED`, `SKIPPED`, or `ERROR` status.
 - The raw message state is stored in the JSON file configured by `TELEGRAM_MESSAGE_STORE_PATH`.
+- OpenAI is used first to normalize messages into JSON, then regex is used as a fallback if the model is unavailable or the payload is invalid.
 
 API:
 

@@ -35,9 +35,17 @@ class TelegramMessageStore:
             "raw_message": raw_message,
             "kind": "UNKNOWN",
             "status": "RECEIVED",
+            "parser_source": "",
+            "confidence": 0.0,
+            "reason": "",
             "signal_id": None,
             "symbol": "",
             "side": "",
+            "entry_price": 0.0,
+            "stop_loss": 0.0,
+            "tp1": 0.0,
+            "tp2": 0.0,
+            "normalized_json": "",
             "error_message": "",
             "created_at": now,
             "updated_at": now,
@@ -54,9 +62,17 @@ class TelegramMessageStore:
         record_id: str,
         *,
         kind: str,
+        parser_source: str,
+        confidence: float,
+        reason: str,
         signal_id: int | None = None,
         symbol: str = "",
         side: str = "",
+        entry_price: float = 0.0,
+        stop_loss: float = 0.0,
+        tp1: float = 0.0,
+        tp2: float = 0.0,
+        normalized_json: str = "",
     ) -> bool:
         return self._update_record(
             record_id,
@@ -64,32 +80,46 @@ class TelegramMessageStore:
                 {
                     "kind": kind,
                     "status": "PARSED",
+                    "parser_source": parser_source,
+                    "confidence": confidence,
+                    "reason": reason,
                     "signal_id": signal_id,
                     "symbol": symbol,
                     "side": side,
+                    "entry_price": entry_price,
+                    "stop_loss": stop_loss,
+                    "tp1": tp1,
+                    "tp2": tp2,
+                    "normalized_json": normalized_json,
                     "error_message": "",
                 }
             ),
         )
 
-    def mark_skipped(self, record_id: str, *, reason: str) -> bool:
+    def mark_skipped(self, record_id: str, *, reason: str, parser_source: str = "regex", normalized_json: str = "") -> bool:
         return self._update_record(
             record_id,
             lambda item: item.update(
                 {
                     "kind": "UNKNOWN",
                     "status": "SKIPPED",
+                    "parser_source": parser_source,
+                    "confidence": 0.0,
+                    "reason": reason,
+                    "normalized_json": normalized_json,
                     "error_message": reason,
                 }
             ),
         )
 
-    def mark_error(self, record_id: str, *, error_message: str) -> bool:
+    def mark_error(self, record_id: str, *, error_message: str, parser_source: str = "", normalized_json: str = "") -> bool:
         return self._update_record(
             record_id,
             lambda item: item.update(
                 {
                     "status": "ERROR",
+                    "parser_source": parser_source,
+                    "normalized_json": normalized_json,
                     "error_message": error_message,
                 }
             ),

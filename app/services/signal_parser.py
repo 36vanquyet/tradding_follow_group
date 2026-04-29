@@ -12,6 +12,50 @@ class SignalParser:
         re.compile(r"#([A-Z0-9]{2,20})", re.IGNORECASE),
     ]
     _type_pattern = re.compile(r"TYPE:\s*(BUY|SELL|LONG|SHORT)", re.IGNORECASE)
+    _entry_labels = [
+        "ENTRY",
+        "VUNG THAM CHIEU",
+        "VUNG VAO LENH",
+        "GIA VAO LENH",
+    ]
+    _sl_labels = [
+        "SL",
+        "STOP LOSS",
+        "NGUONG RUI RO",
+        "DIEM CAT LO",
+    ]
+    _buy_tp1_labels = [
+        "TP1",
+        "TAKE PROFIT 1",
+        "KHANG CU 1",
+        "MUC TIEU 1",
+        "TARGET 1",
+        "HO TRO 1",
+    ]
+    _buy_tp2_labels = [
+        "TP2",
+        "TAKE PROFIT 2",
+        "KHANG CU 2",
+        "MUC TIEU 2",
+        "TARGET 2",
+        "HO TRO 2",
+    ]
+    _sell_tp1_labels = [
+        "TP1",
+        "TAKE PROFIT 1",
+        "HO TRO 1",
+        "MUC TIEU 1",
+        "TARGET 1",
+        "KHANG CU 1",
+    ]
+    _sell_tp2_labels = [
+        "TP2",
+        "TAKE PROFIT 2",
+        "HO TRO 2",
+        "MUC TIEU 2",
+        "TARGET 2",
+        "KHANG CU 2",
+    ]
     _trend_buy_patterns = [
         re.compile(r"XU HUONG\s*TANG", re.IGNORECASE),
         re.compile(r"XU HUONG\s*LONG", re.IGNORECASE),
@@ -23,22 +67,6 @@ class SignalParser:
         re.compile(r"XU HUONG\s*SHORT", re.IGNORECASE),
         re.compile(r"BEARISH", re.IGNORECASE),
         re.compile(r"DOWNTREND", re.IGNORECASE),
-    ]
-    _entry_patterns = [
-        re.compile(r"ENTRY:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
-        re.compile(r"VUNG THAM CHIEU:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
-    ]
-    _sl_patterns = [
-        re.compile(r"SL:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
-        re.compile(r"NGUONG RUI RO:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
-    ]
-    _tp1_patterns = [
-        re.compile(r"TP1:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
-        re.compile(r"HO TRO 1:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
-    ]
-    _tp2_patterns = [
-        re.compile(r"TP2:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
-        re.compile(r"HO TRO 2:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
     ]
     _close_instruction_patterns = [
         # Close / exit instructions with common Vietnamese synonyms.
@@ -66,16 +94,20 @@ class SignalParser:
             elif self._matches_any(self._trend_sell_patterns, normalized):
                 type_text = "SELL"
 
-        entry = self._match_first(self._entry_patterns, normalized)
-        stop_loss = self._match_first(self._sl_patterns, normalized)
-        tp1 = self._match_first(self._tp1_patterns, normalized)
-        tp2 = self._match_first(self._tp2_patterns, normalized)
+        side = self._canonical_side(type_text)
+        entry = self._match_labeled_number(normalized, self._entry_labels)
+        stop_loss = self._match_labeled_number(normalized, self._sl_labels)
+        if side == "SELL":
+            tp1 = self._match_labeled_number(normalized, self._sell_tp1_labels)
+            tp2 = self._match_labeled_number(normalized, self._sell_tp2_labels)
+        else:
+            tp1 = self._match_labeled_number(normalized, self._buy_tp1_labels)
+            tp2 = self._match_labeled_number(normalized, self._buy_tp2_labels)
 
         if not all([symbol, type_text, entry, stop_loss, tp1, tp2]):
             return None
 
-        side = type_text.upper()
-        side = "BUY" if side in {"BUY", "LONG"} else "SELL"
+        side = self._canonical_side(type_text)
         if not symbol.endswith(default_quote_asset):
             symbol = f"{symbol}{default_quote_asset}"
 
@@ -121,5 +153,18 @@ class SignalParser:
             return match.group(1)
         return None
 
+    def _match_labeled_number(self, text: str, labels: list[str]) -> Optional[str]:
+        for label in labels:
+            pattern = re.compile(rf"\b{re.escape(label)}\s*:\s*([0-9]*\.?[0-9]+)\b", re.IGNORECASE)
+            match = pattern.search(text)
+            if match:
+                return match.group(1)
+        return None
+
     def _matches_any(self, patterns, text: str) -> bool:
         return any(pattern.search(text) for pattern in patterns)
+
+    @staticmethod
+    def _canonical_side(type_text: Optional[str]) -> str:
+        side = (type_text or "").upper()
+        return "BUY" if side in {"BUY", "LONG"} else "SELL"

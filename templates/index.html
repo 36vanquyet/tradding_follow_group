@@ -109,10 +109,13 @@
                             <th>Time</th>
                             <th>Chat</th>
                             <th>Msg ID</th>
-                            <th>Kind</th>
+                            <th>Source</th>
                             <th>Status</th>
+                            <th>Kind</th>
                             <th>Signal</th>
+                            <th>Side</th>
                             <th>Message</th>
+                            <th>Parsed</th>
                             <th>Error</th>
                         </tr>
                     </thead>
@@ -122,15 +125,18 @@
                             <td>{{ message.created_at }}</td>
                             <td>{{ message.chat_name }}</td>
                             <td>{{ message.telegram_message_id or "-" }}</td>
-                            <td>{{ message.kind }}</td>
+                            <td>{{ message.parser_source or "-" }}</td>
                             <td><span class="status status-{{ message.status|lower }}">{{ message.status }}</span></td>
+                            <td>{{ message.kind }}</td>
                             <td>{{ message.signal_id or "-" }}</td>
+                            <td>{{ message.side or "-" }}</td>
                             <td title="{{ message.raw_message }}">{{ message.raw_message | replace("\n", " ") | truncate(120, True, "...") }}</td>
+                            <td title="{{ message.normalized_json }}">{{ message.normalized_json | truncate(120, True, "...") if message.normalized_json else "-" }}</td>
                             <td>{{ message.error_message or "-" }}</td>
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="8">No message data yet.</td>
+                            <td colspan="10">No message data yet.</td>
                         </tr>
                     {% endfor %}
                     </tbody>

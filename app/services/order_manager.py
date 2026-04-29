@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.services.ai_decision import AIDecisionEngine
 from app.services.bybit_service import BybitService
+from app.services.message_normalizer import MessageNormalizer
 from app.services.repository import Repository
-from app.services.signal_parser import SignalParser
 from app.services.telegram_message_store import TelegramMessageStore
 from app.services.telegram_notifier import TelegramNotifier
 
@@ -14,11 +14,11 @@ from app.services.telegram_notifier import TelegramNotifier
 class OrderManager:
     def __init__(self, settings: Settings, notifier: TelegramNotifier, message_store: TelegramMessageStore):
         self.settings = settings
-        self.parser = SignalParser()
         self.ai_engine = AIDecisionEngine(settings)
         self.bybit = BybitService(settings)
         self.notifier = notifier
         self.message_store = message_store
+        self.normalizer = MessageNormalizer(settings)
 
     def record_message_received(
         self,
@@ -47,15 +47,42 @@ class OrderManager:
         signal = None
 
         try:
-            close_symbol = self.parser.parse_close_instruction(raw_message, self.settings.default_quote_asset)
-            if close_symbol:
-                if message_record_id:
+            normalized = self.normalizer.normalize(raw_message, self.settings.default_quote_asset)
+
+            if message_record_id:
+                if normalized.kind in {"SIGNAL", "CLOSE"}:
                     self._safe_mark_parsed(
                         message_record_id,
-                        kind="CLOSE",
-                        symbol=close_symbol,
-                        side="",
+                        kind=normalized.kind,
+                        parser_source=normalized.parser_source,
+                        confidence=normalized.confidence,
+                        reason=normalized.reason,
+                        signal_id=None,
+                        symbol=normalized.symbol,
+                        side=normalized.side,
+                        entry_price=normalized.entry_price,
+                        stop_loss=normalized.stop_loss,
+                        tp1=normalized.tp1,
+                        tp2=normalized.tp2,
+                        normalized_json=normalized.normalized_json,
                     )
+                elif normalized.status == "SKIPPED":
+                    self._safe_mark_skipped(
+                        message_record_id,
+                        reason=normalized.reason,
+                        parser_source=normalized.parser_source,
+                        normalized_json=normalized.normalized_json,
+                    )
+                else:
+                    self._safe_mark_error(
+                        message_record_id,
+                        error_message=normalized.reason or "Message normalization failed.",
+                        parser_source=normalized.parser_source,
+                        normalized_json=normalized.normalized_json,
+                    )
+
+            if normalized.kind == "CLOSE":
+                close_symbol = normalized.symbol
                 result = self.bybit.close_symbol_position(close_symbol)
                 if result.get("closed"):
                     repo.log(
@@ -81,13 +108,11 @@ class OrderManager:
                     )
                 return
 
-            parsed = self.parser.parse(raw_message, self.settings.default_quote_asset)
-            if not parsed:
-                if message_record_id:
-                    self._safe_mark_skipped(message_record_id, reason="Signal format could not be parsed.")
+            if normalized.kind != "SIGNAL":
                 repo.log("Skip message because signal format could not be parsed.", context_json=raw_message)
                 return
 
+            parsed = normalized
             signal = repo.create_signal(
                 source_chat_id=source_chat_id,
                 source_chat_name=source_chat_name,
@@ -105,9 +130,17 @@ class OrderManager:
                 self._safe_mark_parsed(
                     message_record_id,
                     kind="SIGNAL",
+                    parser_source=normalized.parser_source,
+                    confidence=normalized.confidence,
+                    reason=normalized.reason,
                     signal_id=signal.id,
                     symbol=parsed.symbol,
                     side=parsed.side,
+                    entry_price=parsed.entry_price,
+                    stop_loss=parsed.stop_loss,
+                    tp1=parsed.tp1,
+                    tp2=parsed.tp2,
+                    normalized_json=normalized.normalized_json,
                 )
             repo.log("Received new signal.", signal_id=signal.id, context_json=raw_message)
             await self.notifier.send(
@@ -207,7 +240,7 @@ class OrderManager:
             )
         except Exception as exc:
             if message_record_id:
-                self._safe_mark_error(message_record_id, error_message=str(exc))
+                self._safe_mark_error(message_record_id, error_message=str(exc), normalized_json="")
             if signal is not None:
                 repo.update_signal(signal, status="ERROR", error_message=str(exc))
                 repo.log("Failed to place Bybit orders.", level="ERROR", signal_id=signal.id, context_json=str(exc))
@@ -270,9 +303,14 @@ class OrderManager:
         except Exception as exc:
             self._safe_store_log("Failed to mark message as skipped.", str(exc))
 
-    def _safe_mark_error(self, record_id: str, *, error_message: str) -> None:
+    def _safe_mark_error(self, record_id: str, *, error_message: str, parser_source: str = "", normalized_json: str = "") -> None:
         try:
-            self.message_store.mark_error(record_id, error_message=error_message)
+            self.message_store.mark_error(
+                record_id,
+                error_message=error_message,
+                parser_source=parser_source,
+                normalized_json=normalized_json,
+            )
         except Exception as exc:
             self._safe_store_log("Failed to mark message as error.", str(exc))
 
