@@ -103,16 +103,16 @@ Run silently with console logs suppressed:
 .\scripts\start_bot.ps1 -Silent
 ```
 
-Install a Windows scheduled task that starts the bot at logon:
+Install a Windows scheduled task that starts the bot at Windows startup:
 
 ```powershell
 .\scripts\install_task.ps1
 ```
 
-Or start it at Windows startup:
+If you want logon instead, pass:
 
 ```powershell
-.\scripts\install_task.ps1 -Trigger AtStartup
+.\scripts\install_task.ps1 -Trigger AtLogOn
 ```
 
 Remove the scheduled task:
@@ -125,8 +125,8 @@ Scheduled task notes:
 
 - The task itself does not write app logs to a file unless you configure redirection or task history.
 - The default scheduled setup now runs `start_bot.ps1 -Silent`, which suppresses console output and Uvicorn access logs.
-- `AtLogOn` works without admin rights.
 - `AtStartup` requires running `install_task.ps1` as Administrator.
+- `AtLogOn` works without admin rights.
 - If you want debugging output later, run `.\scripts\start_bot.ps1` manually without `-Silent`.
 
 Dashboard:

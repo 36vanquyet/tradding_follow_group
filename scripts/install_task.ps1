@@ -1,7 +1,7 @@
 param(
     [string]$TaskName = "GroupTrade Bot",
     [ValidateSet("AtLogOn", "AtStartup")]
-    [string]$Trigger = "AtLogOn"
+    [string]$Trigger = "AtStartup"
 )
 
 $ErrorActionPreference = "Stop"
