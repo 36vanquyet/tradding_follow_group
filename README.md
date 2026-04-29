@@ -81,6 +81,14 @@ Run without reload for scheduled use:
 .\scripts\start_bot.ps1
 ```
 
+If PowerShell execution policy blocks `.ps1` files, use the `.cmd` wrappers:
+
+```powershell
+.\scripts\start_bot.cmd
+.\scripts\install_task.cmd
+.\scripts\remove_task.cmd
+```
+
 Run silently with console logs suppressed:
 
 ```powershell
