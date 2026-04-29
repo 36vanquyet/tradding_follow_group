@@ -105,4 +105,5 @@ API:
 - The app auto-adds new SQLite columns for `margin_usdt`, `leverage`, `stop_loss_pct`, `estimated_sl_loss_pct`.
 - This code assumes Bybit `linear` USDT perpetual and one-way position mode.
 - Different expert formats can be supported by extending `app/services/signal_parser.py`.
+- Manual close instructions like `đóng sớm ARB` are detected and only close the symbol if an open position exists.
 - Test on Bybit testnet before using real funds.

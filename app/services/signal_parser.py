@@ -40,6 +40,20 @@ class SignalParser:
         re.compile(r"TP2:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
         re.compile(r"HO TRO 2:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE),
     ]
+    _close_instruction_patterns = [
+        # Close / exit instructions with common Vietnamese synonyms.
+        # Keep the symbol requirement explicit to avoid false positives.
+        re.compile(
+            r"\b(?:DONG|CHOT|CAT|THOAT)\s+(?:SOM\s+)?(?:LENH\s+|VI THE\s+|POSITION\s+|GIAO DICH\s+)?#?([A-Z0-9]{2,20})\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(?:DONG|CHOT|CAT|THOAT)\s+#?([A-Z0-9]{2,20})\b",
+            re.IGNORECASE,
+        ),
+        re.compile(r"\bCLOSE\s+#?([A-Z0-9]{2,20})\b", re.IGNORECASE),
+        re.compile(r"\bEXIT\s+#?([A-Z0-9]{2,20})\b", re.IGNORECASE),
+    ]
 
     def parse(self, raw_message: str, default_quote_asset: str) -> Optional[ParsedSignal]:
         normalized = self._normalize(raw_message)
@@ -74,8 +88,20 @@ class SignalParser:
             tp2=float(tp2),
         )
 
+    def parse_close_instruction(self, raw_message: str, default_quote_asset: str) -> Optional[str]:
+        normalized = self._normalize(raw_message)
+        symbol = self._match_first(self._close_instruction_patterns, normalized)
+        if not symbol:
+            return None
+        symbol = symbol.upper()
+        if not symbol.endswith(default_quote_asset):
+            symbol = f"{symbol}{default_quote_asset}"
+        return symbol
+
     def _normalize(self, raw_message: str) -> str:
-        text = unicodedata.normalize("NFKD", raw_message)
+        text = raw_message.replace("Đ", "D").replace("đ", "d")
+        text = unicodedata.normalize("NFKD", text)
+        text = "".join(ch for ch in text if not unicodedata.combining(ch))
         text = text.encode("ascii", "ignore").decode("ascii")
         text = text.upper()
         for old in ["🔸", "❌", "✅", "⚠", "📉", "📈", "—", "-", "/"]:

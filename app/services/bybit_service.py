@@ -143,10 +143,11 @@ class BybitService:
             return {"result": results}
 
     def close_symbol_position(self, symbol: str) -> dict[str, Any]:
-        self.cancel_symbol_orders(symbol)
         position = self._get_open_position(symbol)
         if not position:
-            raise ValueError(f"No open position found for {symbol}.")
+            return {"closed": False, "symbol": symbol, "reason": "no_open_position"}
+
+        self.cancel_symbol_orders(symbol)
 
         side = str(position.get("side", "")).title()
         if side not in {"Buy", "Sell"}:

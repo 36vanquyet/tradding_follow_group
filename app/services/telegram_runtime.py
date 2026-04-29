@@ -215,6 +215,9 @@ class TelegramRuntime:
         except Exception as exc:
             await update.message.reply_text(f"Failed to close {symbol}: {exc}")
             return
+        if not result.get("closed"):
+            await update.message.reply_text(f"No open position found for {symbol}")
+            return
         await update.message.reply_text(
             f"Closed position for {symbol}\n"
             f"Result: {self.order_manager.bybit.dump(result)}"

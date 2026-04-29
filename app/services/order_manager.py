@@ -20,6 +20,23 @@ class OrderManager:
 
     async def process_message(self, db: Session, source_chat_id: str, source_chat_name: str, raw_message: str) -> None:
         repo = Repository(db)
+
+        close_symbol = self.parser.parse_close_instruction(raw_message, self.settings.default_quote_asset)
+        if close_symbol:
+            result = self.bybit.close_symbol_position(close_symbol)
+            if result.get("closed"):
+                repo.log(
+                    "Received manual close instruction and closed open position.",
+                    context_json=self.bybit.dump(result),
+                )
+                await self.notifier.send(f"Closed open position for {close_symbol}")
+            else:
+                repo.log(
+                    "Received manual close instruction but no open position existed.",
+                    context_json=self.bybit.dump(result),
+                )
+            return
+
         parsed = self.parser.parse(raw_message, self.settings.default_quote_asset)
         if not parsed:
             repo.log("Skip message because signal format could not be parsed.", context_json=raw_message)
