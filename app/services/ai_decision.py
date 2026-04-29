@@ -1,23 +1,25 @@
 import json
 
-from openai import OpenAI
+from openai import APIConnectionError, APIError, AuthenticationError, BadRequestError, RateLimitError
 
 from app.config import Settings
 from app.schemas import AIDecision, ParsedSignal
+from app.services.llm_client import build_llm_client
 
 
 class AIDecisionEngine:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = OpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+        self.client, self.provider_name = build_llm_client(settings)
+        self.provider_disabled = False
 
     def evaluate(self, signal: ParsedSignal) -> AIDecision:
         rr = self._risk_reward(signal)
         if rr <= 0.8:
             return AIDecision(False, 0.15, f"Risk/reward quá thấp ({rr:.2f}).")
 
-        if not self.client:
-            return AIDecision(True, min(0.7, max(0.56, rr / 3)), "Không có OpenAI API key, dùng luật fallback.")
+        if not self.client or self.provider_disabled:
+            return self._fallback_decision(rr, "No LLM key or LLM disabled.")
 
         prompt = {
             "task": "Evaluate whether this futures trading signal should be auto-executed.",
@@ -38,23 +40,28 @@ class AIDecisionEngine:
             },
             "output_schema": {"approve": True, "confidence": 0.0, "reason": "short reason"},
         }
-        response = self.client.responses.create(
-            model=self.settings.openai_model,
-            input=[
-                {
-                    "role": "system",
-                    "content": "You are a strict futures signal risk filter. Output only valid JSON.",
-                },
-                {"role": "user", "content": json.dumps(prompt)},
-            ],
-        )
-        raw = response.output_text.strip()
-        data = json.loads(raw)
-        return AIDecision(
-            approve=bool(data["approve"]),
-            confidence=float(data["confidence"]),
-            reason=str(data["reason"]),
-        )
+
+        try:
+            response = self.client.responses.create(
+                model=self.settings.groq_model if self.provider_name == "groq" else self.settings.openai_model,
+                instructions="You are a strict futures signal risk filter. Output only valid JSON.",
+                input=json.dumps(prompt),
+                max_output_tokens=200,
+                temperature=0,
+            )
+            raw = response.output_text.strip()
+            data = json.loads(raw)
+            return AIDecision(
+                approve=bool(data["approve"]),
+                confidence=float(data["confidence"]),
+                reason=str(data["reason"]),
+            )
+        except (RateLimitError, AuthenticationError, BadRequestError, APIConnectionError, APIError, json.JSONDecodeError) as exc:
+            self.provider_disabled = True
+            return self._fallback_decision(rr, f"LLM unavailable, using fallback. {exc}")
+
+    def _fallback_decision(self, rr: float, reason: str) -> AIDecision:
+        return AIDecision(True, min(0.7, max(0.56, rr / 3)), reason)
 
     def _risk_reward(self, signal: ParsedSignal) -> float:
         if signal.side == "BUY":

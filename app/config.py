@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./grouptrade.db"
     web_base_url: str = "http://127.0.0.1:8080"
     telegram_message_store_path: str = "./telegram_messages.json"
+    llm_provider: str = "groq"
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_model: str = "openai/gpt-oss-120b"
 
     telegram_api_id: int = 0
     telegram_api_hash: str = ""

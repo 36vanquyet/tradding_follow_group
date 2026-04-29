@@ -38,7 +38,7 @@ flowchart TB
     OM --> NT
 
     NP --> SP[SignalParser]
-    NP --> OPENAI[OpenAI Responses API]
+    NP --> GROQ[Groq API]
     SP --> NP
 ```
 
@@ -191,7 +191,7 @@ erDiagram
 | Component | Responsibility |
 | --- | --- |
 | `TelegramRuntime` | Starts Telethon listener, Telegram bot commands, and sync loop |
-| `MessageNormalizer` | Converts raw Telegram text into a normalized JSON-like object |
+| `MessageNormalizer` | Converts raw Telegram text into a normalized JSON-like object using Groq first, regex fallback second |
 | `TelegramMessageStore` | Stores receive/parse/skip/error state in JSON |
 | `OrderManager` | Controls parsing, AI decision, order submission, and error handling |
 | `Repository` | Reads/writes SQLite trade data |

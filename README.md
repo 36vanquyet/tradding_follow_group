@@ -59,8 +59,10 @@ The bot also attempts to switch Bybit to isolated mode before placing the order.
    - `TELEGRAM_SOURCE_CHAT_IDS`
    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_NOTIFY_CHAT_ID`
    - `TELEGRAM_MESSAGE_STORE_PATH` if you want to move the JSON file
+   - `LLM_PROVIDER=groq`
+   - `GROQ_API_KEY` and optionally `GROQ_MODEL`
    - `BYBIT_API_KEY`, `BYBIT_API_SECRET`
-   - `OPENAI_API_KEY` if you want real AI evaluation
+   - `OPENAI_API_KEY` only if you want fallback OpenAI support
 3. Start with `BYBIT_TESTNET=true`.
 
 ## Install
@@ -140,7 +142,7 @@ Telegram message tracking:
 
 - The dashboard now shows each Telegram message with `RECEIVED`, `PARSED`, `SKIPPED`, or `ERROR` status.
 - The raw message state is stored in the JSON file configured by `TELEGRAM_MESSAGE_STORE_PATH`.
-- OpenAI is used first to normalize messages into JSON, then regex is used as a fallback if the model is unavailable or the payload is invalid.
+- Groq is used first to normalize messages into JSON and evaluate signals, then regex is used as a fallback if the model is unavailable or the payload is invalid.
 
 API:
 

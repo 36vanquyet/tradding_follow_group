@@ -5,27 +5,29 @@ import re
 from dataclasses import asdict
 from typing import Any
 
-from openai import OpenAI
+from openai import APIConnectionError, APIError, AuthenticationError, BadRequestError, RateLimitError
 
 from app.config import Settings
 from app.schemas import NormalizedTelegramMessage
+from app.services.llm_client import build_llm_client
 from app.services.signal_parser import SignalParser
 
 
 class MessageNormalizer:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = OpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+        self.client, self.provider_name = build_llm_client(settings)
+        self.provider_disabled = False
         self.fallback_parser = SignalParser()
 
     def normalize(self, raw_message: str, default_quote_asset: str) -> NormalizedTelegramMessage:
-        if self.client:
+        if self.client and not self.provider_disabled:
             try:
                 parsed = self._normalize_with_openai(raw_message, default_quote_asset)
                 if parsed and parsed.kind in {"SIGNAL", "CLOSE"}:
                     return parsed
-            except Exception:
-                pass
+            except (RateLimitError, AuthenticationError, BadRequestError, APIConnectionError, APIError, json.JSONDecodeError):
+                self.provider_disabled = True
         return self._normalize_with_regex(raw_message, default_quote_asset)
 
     def _normalize_with_openai(self, raw_message: str, default_quote_asset: str) -> NormalizedTelegramMessage | None:
@@ -56,7 +58,7 @@ class MessageNormalizer:
             "message": raw_message,
         }
         response = self.client.responses.create(
-            model=self.settings.openai_model,
+            model=self.settings.groq_model if self.provider_name == "groq" else self.settings.openai_model,
             instructions=(
                 "You extract Telegram trade signals into strict JSON. "
                 "If the message is not a trade signal or close instruction, return kind UNKNOWN. "
@@ -67,7 +69,7 @@ class MessageNormalizer:
             temperature=0,
         )
         payload = self._extract_json(response.output_text)
-        return self._coerce_payload(payload, parser_source="openai", default_quote_asset=default_quote_asset)
+        return self._coerce_payload(payload, parser_source=self.provider_name, default_quote_asset=default_quote_asset)
 
     def _normalize_with_regex(self, raw_message: str, default_quote_asset: str) -> NormalizedTelegramMessage:
         close_symbol = self.fallback_parser.parse_close_instruction(raw_message, default_quote_asset)
@@ -138,7 +140,7 @@ class MessageNormalizer:
             status="PARSED" if kind in {"SIGNAL", "CLOSE"} else "SKIPPED",
             parser_source=parser_source,
             confidence=confidence,
-            reason=reason or ("Parsed by OpenAI." if kind in {"SIGNAL", "CLOSE"} else "Not actionable."),
+            reason=reason or (f"Parsed by {parser_source}." if kind in {"SIGNAL", "CLOSE"} else "Not actionable."),
             symbol=symbol,
             side=side,
             entry_price=entry_price or 0.0,
