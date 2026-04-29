@@ -77,6 +77,69 @@
 
         <section class="panel">
             <div class="panel-head">
+                <h2>Telegram messages</h2>
+                <a href="{{ web_base_url }}/api/messages" target="_blank">API</a>
+            </div>
+            <div class="grid message-stats">
+                <article class="card">
+                    <span>Total</span>
+                    <strong>{{ message_summary.total }}</strong>
+                </article>
+                <article class="card">
+                    <span>Received</span>
+                    <strong>{{ message_summary.received }}</strong>
+                </article>
+                <article class="card">
+                    <span>Parsed</span>
+                    <strong>{{ message_summary.parsed }}</strong>
+                </article>
+                <article class="card">
+                    <span>Skipped</span>
+                    <strong>{{ message_summary.skipped }}</strong>
+                </article>
+                <article class="card">
+                    <span>Error</span>
+                    <strong>{{ message_summary.error }}</strong>
+                </article>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Chat</th>
+                            <th>Msg ID</th>
+                            <th>Kind</th>
+                            <th>Status</th>
+                            <th>Signal</th>
+                            <th>Message</th>
+                            <th>Error</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for message in messages %}
+                        <tr>
+                            <td>{{ message.created_at }}</td>
+                            <td>{{ message.chat_name }}</td>
+                            <td>{{ message.telegram_message_id or "-" }}</td>
+                            <td>{{ message.kind }}</td>
+                            <td><span class="status status-{{ message.status|lower }}">{{ message.status }}</span></td>
+                            <td>{{ message.signal_id or "-" }}</td>
+                            <td title="{{ message.raw_message }}">{{ message.raw_message | replace("\n", " ") | truncate(120, True, "...") }}</td>
+                            <td>{{ message.error_message or "-" }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8">No message data yet.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
                 <h2>Recent orders</h2>
                 <a href="{{ web_base_url }}/api/orders" target="_blank">API</a>
             </div>

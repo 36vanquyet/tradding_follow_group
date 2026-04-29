@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.database import Base, SessionLocal, engine
 from app.services.order_manager import OrderManager
 from app.services.repository import Repository
+from app.services.telegram_message_store import TelegramMessageStore
 from app.services.telegram_notifier import TelegramNotifier
 from app.services.telegram_runtime import TelegramRuntime
 
@@ -20,7 +21,8 @@ Base.metadata.create_all(bind=engine)
 templates = Jinja2Templates(directory="templates")
 
 notifier = TelegramNotifier(settings)
-order_manager = OrderManager(settings, notifier)
+message_store = TelegramMessageStore(settings.telegram_message_store_path)
+order_manager = OrderManager(settings, notifier, message_store)
 telegram_runtime = TelegramRuntime(settings, order_manager, notifier)
 
 
@@ -53,6 +55,8 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
             "summary": repo.summary(),
             "signals": repo.list_signals(20),
             "orders": repo.list_orders(20),
+            "message_summary": message_store.summary(),
+            "messages": message_store.list_messages(50),
             "web_base_url": settings.web_base_url,
         },
     )
@@ -107,6 +111,14 @@ def api_orders(db: Session = Depends(get_db)):
         }
         for item in orders
     ]
+
+
+@app.get("/api/messages", response_class=JSONResponse)
+def api_messages():
+    return {
+        "summary": message_store.summary(),
+        "messages": message_store.list_messages(100),
+    }
 
 
 @app.get("/health", response_class=JSONResponse)

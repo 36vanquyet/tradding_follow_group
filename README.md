@@ -6,7 +6,8 @@ This bot does five things:
 2. Parse futures signals and filter them through AI.
 3. Calculate isolated futures leverage from the stop loss distance, then place entry, SL, TP1 and TP2 on Bybit.
 4. Save signal, order and PnL history in SQLite.
-5. Show a localhost dashboard and accept Telegram control commands.
+5. Save Telegram message receive/parse/skip/error state in JSON.
+6. Show a localhost dashboard and accept Telegram control commands.
 
 ## Risk model
 
@@ -56,6 +57,7 @@ The bot also attempts to switch Bybit to isolated mode before placing the order.
    - `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`
    - `TELEGRAM_SOURCE_CHAT_IDS`
    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_NOTIFY_CHAT_ID`
+   - `TELEGRAM_MESSAGE_STORE_PATH` if you want to move the JSON file
    - `BYBIT_API_KEY`, `BYBIT_API_SECRET`
    - `OPENAI_API_KEY` if you want real AI evaluation
 3. Start with `BYBIT_TESTNET=true`.
@@ -133,11 +135,17 @@ Dashboard:
 
 - `http://127.0.0.1:8080`
 
+Telegram message tracking:
+
+- The dashboard now shows each Telegram message with `RECEIVED`, `PARSED`, `SKIPPED`, or `ERROR` status.
+- The raw message state is stored in the JSON file configured by `TELEGRAM_MESSAGE_STORE_PATH`.
+
 API:
 
 - `GET /api/summary`
 - `GET /api/signals`
 - `GET /api/orders`
+- `GET /api/messages`
 - `GET /health`
 
 ## Telegram commands

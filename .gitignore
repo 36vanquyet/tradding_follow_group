@@ -24,6 +24,7 @@ env/
 *.sqlite3
 *.session
 *.session-journal
+telegram_messages.json
 
 # Logs
 *.log

@@ -34,6 +34,19 @@ class TelegramRuntime:
             async def handler(event):
                 raw_message = event.raw_text
                 chat = await event.get_chat()
+                telegram_message_id = getattr(getattr(event, "message", None), "id", None)
+                if telegram_message_id is None:
+                    telegram_message_id = getattr(event, "id", None)
+                record_id = None
+                try:
+                    record_id = self.order_manager.record_message_received(
+                        source_chat_id=str(event.chat_id),
+                        source_chat_name=getattr(chat, "title", str(event.chat_id)),
+                        telegram_message_id=telegram_message_id,
+                        raw_message=raw_message,
+                    )
+                except Exception as exc:
+                    await self.notifier.send(f"Telegram message store error: {exc}")
                 db = SessionLocal()
                 try:
                     await self.order_manager.process_message(
@@ -41,6 +54,7 @@ class TelegramRuntime:
                         source_chat_id=str(event.chat_id),
                         source_chat_name=getattr(chat, "title", str(event.chat_id)),
                         raw_message=raw_message,
+                        message_record_id=record_id,
                     )
                 finally:
                     db.close()

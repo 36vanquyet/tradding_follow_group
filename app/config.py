@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     app_port: int = 8080
     database_url: str = "sqlite:///./grouptrade.db"
     web_base_url: str = "http://127.0.0.1:8080"
+    telegram_message_store_path: str = "./telegram_messages.json"
 
     telegram_api_id: int = 0
     telegram_api_hash: str = ""
