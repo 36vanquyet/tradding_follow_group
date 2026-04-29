@@ -89,6 +89,8 @@ If PowerShell execution policy blocks `.ps1` files, use the `.cmd` wrappers:
 .\scripts\remove_task.cmd
 ```
 
+Or double-click `run.bat` from the project root.
+
 Run silently with console logs suppressed:
 
 ```powershell
