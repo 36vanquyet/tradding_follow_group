@@ -75,6 +75,24 @@ Copy-Item .env.example .env
 uvicorn app.main:app --host 127.0.0.1 --port 8080 --reload
 ```
 
+Run without reload for scheduled use:
+
+```powershell
+.\scripts\start_bot.ps1
+```
+
+Install a Windows scheduled task that starts the bot at logon:
+
+```powershell
+.\scripts\install_task.ps1
+```
+
+Or start it at Windows startup:
+
+```powershell
+.\scripts\install_task.ps1 -Trigger AtStartup
+```
+
 Dashboard:
 
 - `http://127.0.0.1:8080`
