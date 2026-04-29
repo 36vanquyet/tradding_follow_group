@@ -13,21 +13,27 @@ if (-not (Test-Path $startScript)) {
     throw "start_bot.ps1 not found at $startScript"
 }
 
-$action = New-ScheduledTaskAction `
-    -Execute "powershell.exe" `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$startScript`" -Silent"
-
 if ($Trigger -eq "AtStartup") {
-    $triggerObj = New-ScheduledTaskTrigger -AtStartup
+    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator
+    )
+    if (-not $isAdmin) {
+        throw "AtStartup requires running this script as Administrator."
+    }
+    $schedule = "ONSTART"
+    $runLevel = "HIGHEST"
 } else {
-    $triggerObj = New-ScheduledTaskTrigger -AtLogOn
+    $schedule = "ONLOGON"
+    $runLevel = "LIMITED"
 }
 
-Register-ScheduledTask `
-    -TaskName $TaskName `
-    -Action $action `
-    -Trigger $triggerObj `
-    -Description "Start GroupTrade bot automatically" `
-    -Force | Out-Null
+$taskRun = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$startScript`" -Silent"
+
+& schtasks.exe /Create `
+    /TN $TaskName `
+    /TR $taskRun `
+    /SC $schedule `
+    /RL $runLevel `
+    /F | Out-Null
 
 Write-Host "Registered scheduled task: $TaskName ($Trigger)"

@@ -119,6 +119,8 @@ Scheduled task notes:
 
 - The task itself does not write app logs to a file unless you configure redirection or task history.
 - The default scheduled setup now runs `start_bot.ps1 -Silent`, which suppresses console output and Uvicorn access logs.
+- `AtLogOn` works without admin rights.
+- `AtStartup` requires running `install_task.ps1` as Administrator.
 - If you want debugging output later, run `.\scripts\start_bot.ps1` manually without `-Silent`.
 
 Dashboard:
