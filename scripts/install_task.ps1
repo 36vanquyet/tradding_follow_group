@@ -15,7 +15,7 @@ if (-not (Test-Path $startScript)) {
 
 $action = New-ScheduledTaskAction `
     -Execute "powershell.exe" `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$startScript`""
+    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$startScript`" -Silent"
 
 if ($Trigger -eq "AtStartup") {
     $triggerObj = New-ScheduledTaskTrigger -AtStartup

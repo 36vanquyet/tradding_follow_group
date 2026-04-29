@@ -1,5 +1,6 @@
 param(
-    [switch]$Reload
+    [switch]$Reload,
+    [switch]$Silent
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,4 +25,11 @@ if ($Reload) {
     $uvicornArgs += "--reload"
 }
 
-& $python @uvicornArgs
+if ($Silent) {
+    $uvicornArgs += "--log-level"
+    $uvicornArgs += "warning"
+    $uvicornArgs += "--no-access-log"
+    Start-Process -FilePath $python -ArgumentList $uvicornArgs -WindowStyle Hidden -Wait -RedirectStandardOutput "NUL" -RedirectStandardError "NUL"
+} else {
+    & $python @uvicornArgs
+}

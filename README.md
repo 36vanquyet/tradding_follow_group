@@ -81,6 +81,12 @@ Run without reload for scheduled use:
 .\scripts\start_bot.ps1
 ```
 
+Run silently with console logs suppressed:
+
+```powershell
+.\scripts\start_bot.ps1 -Silent
+```
+
 Install a Windows scheduled task that starts the bot at logon:
 
 ```powershell
@@ -92,6 +98,18 @@ Or start it at Windows startup:
 ```powershell
 .\scripts\install_task.ps1 -Trigger AtStartup
 ```
+
+Remove the scheduled task:
+
+```powershell
+.\scripts\remove_task.ps1
+```
+
+Scheduled task notes:
+
+- The task itself does not write app logs to a file unless you configure redirection or task history.
+- The default scheduled setup now runs `start_bot.ps1 -Silent`, which suppresses console output and Uvicorn access logs.
+- If you want debugging output later, run `.\scripts\start_bot.ps1` manually without `-Silent`.
 
 Dashboard:
 
