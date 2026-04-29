@@ -29,11 +29,22 @@ class OrderManager:
                     "Received manual close instruction and closed open position.",
                     context_json=self.bybit.dump(result),
                 )
-                await self.notifier.send(f"Closed open position for {close_symbol}")
+                await self.notifier.send(
+                    f"Event captured from Telegram\n"
+                    f"Type: CLOSE\n"
+                    f"Symbol: {close_symbol}\n"
+                    f"Status: closed open position"
+                )
             else:
                 repo.log(
                     "Received manual close instruction but no open position existed.",
                     context_json=self.bybit.dump(result),
+                )
+                await self.notifier.send(
+                    f"Event captured from Telegram\n"
+                    f"Type: CLOSE\n"
+                    f"Symbol: {close_symbol}\n"
+                    f"Status: no open position"
                 )
             return
 
@@ -56,6 +67,14 @@ class OrderManager:
             status="PARSED",
         )
         repo.log("Received new signal.", signal_id=signal.id, context_json=raw_message)
+        await self.notifier.send(
+            f"Event captured from Telegram\n"
+            f"Source: {source_chat_name}\n"
+            f"Signal #{signal.id}\n"
+            f"{parsed.symbol} {parsed.side}\n"
+            f"Entry {parsed.entry_price} | SL {parsed.stop_loss}\n"
+            f"TP1 {parsed.tp1} | TP2 {parsed.tp2}"
+        )
 
         decision = self.ai_engine.evaluate(parsed)
         approved = decision.approve and decision.confidence >= self.settings.ai_min_confidence
