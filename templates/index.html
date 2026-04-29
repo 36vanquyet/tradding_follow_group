@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GroupTrade Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="page">
+        <section class="hero">
+            <div>
+                <p class="eyebrow">Telegram + AI + Bybit</p>
+                <h1>GroupTrade Dashboard</h1>
+                <p class="subtle">Track signals, futures orders and realized PnL from one localhost dashboard.</p>
+            </div>
+            <div class="grid stats">
+                <article class="card">
+                    <span>Total signals</span>
+                    <strong>{{ summary.signals }}</strong>
+                </article>
+                <article class="card">
+                    <span>Closed PnL</span>
+                    <strong>{{ "%.4f"|format(summary.closed_pnl) }}</strong>
+                </article>
+                <article class="card">
+                    <span>Wins / Losses</span>
+                    <strong>{{ summary.wins }} / {{ summary.losses }}</strong>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Recent signals</h2>
+                <a href="{{ web_base_url }}/api/signals" target="_blank">API</a>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Entry</th>
+                            <th>SL</th>
+                            <th>TP1</th>
+                            <th>TP2</th>
+                            <th>Isolated</th>
+                            <th>AI</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for signal in signals %}
+                        <tr>
+                            <td>{{ signal.id }}</td>
+                            <td>{{ signal.symbol }}</td>
+                            <td>{{ signal.side }}</td>
+                            <td>{{ signal.entry_price }}</td>
+                            <td>{{ signal.stop_loss }}</td>
+                            <td>{{ signal.tp1 }}</td>
+                            <td>{{ signal.tp2 }}</td>
+                            <td>{{ "%.2f"|format(signal.margin_usdt) }} USDT / {{ signal.leverage }}x<br>SL ~ {{ "%.2f"|format(signal.estimated_sl_loss_pct * 100) }}%</td>
+                            <td>{{ "YES" if signal.ai_approved else "NO" }} ({{ "%.2f"|format(signal.ai_confidence) }})</td>
+                            <td><span class="status">{{ signal.status }}</span></td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="10">No data yet.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Recent orders</h2>
+                <a href="{{ web_base_url }}/api/orders" target="_blank">API</a>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Signal</th>
+                            <th>Role</th>
+                            <th>Side</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.signal_id }}</td>
+                            <td>{{ order.role }}</td>
+                            <td>{{ order.side }}</td>
+                            <td>{{ order.qty }}</td>
+                            <td>{{ order.price or "-" }}</td>
+                            <td>{{ order.status }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7">No data yet.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
