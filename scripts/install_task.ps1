@@ -27,7 +27,7 @@ if ($Trigger -eq "AtStartup") {
     $runLevel = "LIMITED"
 }
 
-$taskRun = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$startScript`" -Silent"
+$taskRun = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$startScript`" -Silent"
 
 & schtasks.exe /Create `
     /TN $TaskName `

@@ -100,9 +100,11 @@ If PowerShell execution policy blocks `.ps1` files, use the `.cmd` wrappers:
 .\scripts\remove_task.cmd
 ```
 
+The `.cmd` wrappers now launch PowerShell hidden and `start_bot.cmd` runs the bot in silent background mode by default.
+
 Or double-click `run.bat` from the project root.
 
-Run silently with console logs suppressed:
+Run silently in the background:
 
 ```powershell
 .\scripts\start_bot.ps1 -Silent
@@ -129,7 +131,7 @@ Remove the scheduled task:
 Scheduled task notes:
 
 - The task itself does not write app logs to a file unless you configure redirection or task history.
-- The default scheduled setup now runs `start_bot.ps1 -Silent`, which suppresses console output and Uvicorn access logs.
+- The default scheduled setup now runs `start_bot.ps1 -Silent`, which starts Uvicorn hidden and writes stdout/stderr to `logs/bot.out.log` and `logs/bot.err.log`.
 - `AtStartup` requires running `install_task.ps1` as Administrator.
 - `AtLogOn` works without admin rights.
 - If you want debugging output later, run `.\scripts\start_bot.ps1` manually without `-Silent`.

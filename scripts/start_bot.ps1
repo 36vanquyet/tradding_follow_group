@@ -29,7 +29,11 @@ if ($Silent) {
     $uvicornArgs += "--log-level"
     $uvicornArgs += "warning"
     $uvicornArgs += "--no-access-log"
-    Start-Process -FilePath $python -ArgumentList $uvicornArgs -WindowStyle Hidden -Wait
+    $logDir = Join-Path $repoRoot "logs"
+    New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    $stdoutLog = Join-Path $logDir "bot.out.log"
+    $stderrLog = Join-Path $logDir "bot.err.log"
+    Start-Process -FilePath $python -ArgumentList $uvicornArgs -WindowStyle Hidden -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog | Out-Null
 } else {
     & $python @uvicornArgs
 }
