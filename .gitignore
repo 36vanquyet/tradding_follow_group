@@ -28,6 +28,7 @@ telegram_messages.json
 
 # Logs
 *.log
+logs/*.txt
 
 # IDE and editor files
 .vscode/

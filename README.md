@@ -110,6 +110,48 @@ Run silently in the background:
 .\scripts\start_bot.ps1 -Silent
 ```
 
+## Cloudflare Tunnel
+
+Use Cloudflare Tunnel when you want to open the dashboard from another laptop or phone without exposing port 8080 on your router.
+
+Install `cloudflared` on Windows:
+
+```powershell
+winget install --id Cloudflare.cloudflared
+```
+
+Then start a quick tunnel to the local dashboard:
+
+```powershell
+.\scripts\start_tunnel.cmd
+```
+
+Or from PowerShell:
+
+```powershell
+.\scripts\start_tunnel.ps1
+```
+
+The tunnel prints a public `trycloudflare.com` URL in the terminal. Open that URL from any device and it will proxy back to `http://127.0.0.1:8080` on this machine.
+
+If you want the tunnel to stay in the background:
+
+```powershell
+.\scripts\start_tunnel.ps1 -Silent
+```
+
+Notes:
+
+- Quick tunnels are intended for testing and development.
+- Cloudflare documents that quick tunnels are outbound-only, do not require inbound port changes, and proxy a local service such as `http://localhost:8080`.
+- Quick tunnels have a 200 concurrent request limit and do not support SSE.
+
+Official docs:
+
+- [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/)
+- [Set up Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/setup/)
+- [Download cloudflared](https://developers.cloudflare.com/tunnel/downloads/)
+
 Install a Windows scheduled task that starts the bot at Windows startup:
 
 ```powershell
