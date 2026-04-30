@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     bybit_timestamp_safety_step_ms: int = 1000
     bybit_timestamp_safety_max_ms: int = 15000
     default_quote_asset: str = "USDT"
+    max_signal_price_deviation_pct: float = 0.35
     fixed_margin_usdt: float = 25.0
     min_leverage: int = 1
     max_leverage: int = 25

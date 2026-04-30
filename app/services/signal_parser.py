@@ -6,6 +6,7 @@ from app.schemas import ParsedSignal
 
 
 class SignalParser:
+    _number_pattern = r"([0-9][0-9,]*(?:\.[0-9]+)?)"
     _pair_patterns = [
         re.compile(r"PAIR:\s*#?([A-Z0-9]+)", re.IGNORECASE),
         re.compile(r"COIN:\s*#?([A-Z0-9]+)", re.IGNORECASE),
@@ -155,10 +156,10 @@ class SignalParser:
 
     def _match_labeled_number(self, text: str, labels: list[str]) -> Optional[str]:
         for label in labels:
-            pattern = re.compile(rf"\b{re.escape(label)}\s*:\s*([0-9]*\.?[0-9]+)\b", re.IGNORECASE)
+            pattern = re.compile(rf"\b{re.escape(label)}\s*:\s*{self._number_pattern}\b", re.IGNORECASE)
             match = pattern.search(text)
             if match:
-                return match.group(1)
+                return self._normalize_number(match.group(1))
         return None
 
     def _matches_any(self, patterns, text: str) -> bool:
@@ -168,3 +169,7 @@ class SignalParser:
     def _canonical_side(type_text: Optional[str]) -> str:
         side = (type_text or "").upper()
         return "BUY" if side in {"BUY", "LONG"} else "SELL"
+
+    @staticmethod
+    def _normalize_number(value: str) -> str:
+        return value.replace(",", "")

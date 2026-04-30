@@ -2,6 +2,8 @@ import json
 import math
 import logging
 from datetime import datetime, timezone
+from dataclasses import replace
+from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP, ROUND_UP
 from typing import Any
 
 import pybit._helpers as pybit_helpers
@@ -50,7 +52,26 @@ class BybitService:
         )
 
     def place_signal_orders(self, signal: ParsedSignal) -> dict[str, Any]:
-        plan = self.build_position_plan(signal)
+        instrument = self._get_instrument_info(signal.symbol)
+        market_price = self._get_market_price(signal.symbol)
+        entry_price = self._normalize_price(signal.entry_price, instrument, side=signal.side, purpose="entry")
+        stop_loss = self._normalize_price(signal.stop_loss, instrument, side=signal.side, purpose="stop_loss")
+        tp1 = self._normalize_price(signal.tp1, instrument, side=signal.side, purpose="tp1")
+        tp2 = self._normalize_price(signal.tp2, instrument, side=signal.side, purpose="tp2")
+
+        self._validate_signal_price_distance(signal.symbol, market_price, entry_price)
+        self._validate_signal_price_distance(signal.symbol, market_price, stop_loss, kind="stop_loss")
+        self._validate_signal_price_distance(signal.symbol, market_price, tp1, kind="tp1")
+        self._validate_signal_price_distance(signal.symbol, market_price, tp2, kind="tp2")
+
+        normalized_signal = replace(
+            signal,
+            entry_price=entry_price,
+            stop_loss=stop_loss,
+            tp1=tp1,
+            tp2=tp2,
+        )
+        plan = self.build_position_plan(normalized_signal)
         side = signal.side.title()
         exit_side = "Sell" if side == "Buy" else "Buy"
         trigger_direction = 2 if side == "Buy" else 1
@@ -65,7 +86,7 @@ class BybitService:
             side=side,
             orderType="Limit",
             qty=str(plan.qty),
-            price=str(signal.entry_price),
+            price=self._format_price(entry_price, instrument),
             timeInForce="GTC",
         )
 
@@ -77,7 +98,7 @@ class BybitService:
             side=exit_side,
             orderType="Market",
             qty=str(plan.qty),
-            triggerPrice=str(signal.stop_loss),
+            triggerPrice=self._format_price(stop_loss, instrument),
             triggerDirection=trigger_direction,
             reduceOnly=True,
             closeOnTrigger=True,
@@ -94,7 +115,7 @@ class BybitService:
             side=exit_side,
             orderType="Limit",
             qty=str(tp1_qty),
-            price=str(signal.tp1),
+            price=self._format_price(tp1, instrument),
             timeInForce="GTC",
             reduceOnly=True,
         )
@@ -106,7 +127,7 @@ class BybitService:
             side=exit_side,
             orderType="Limit",
             qty=str(tp2_qty),
-            price=str(signal.tp2),
+            price=self._format_price(tp2, instrument),
             timeInForce="GTC",
             reduceOnly=True,
         )
@@ -327,6 +348,94 @@ class BybitService:
             buyLeverage=str(leverage),
             sellLeverage=str(leverage),
         )
+
+    def _get_market_price(self, symbol: str) -> float:
+        response = self._private_call(
+            "get_tickers",
+            self.session.get_tickers,
+            category=self.settings.bybit_category,
+            symbol=symbol,
+        )
+        items = response.get("result", {}).get("list", [])
+        if not items:
+            raise ValueError(f"Unable to fetch market price for {symbol}.")
+        item = items[0]
+        for key in ("markPrice", "lastPrice", "indexPrice"):
+            value = item.get(key)
+            if value not in (None, ""):
+                return float(value)
+        raise ValueError(f"Unable to determine market price for {symbol}.")
+
+    def _get_instrument_info(self, symbol: str) -> dict[str, Any]:
+        response = self._private_call(
+            "get_instruments_info",
+            self.session.get_instruments_info,
+            category=self.settings.bybit_category,
+            symbol=symbol,
+        )
+        items = response.get("result", {}).get("list", [])
+        if not items:
+            raise ValueError(f"Unable to fetch instrument info for {symbol}.")
+        item = items[0]
+        price_filter = item.get("priceFilter", {}) if isinstance(item, dict) else {}
+        lot_size = item.get("lotSizeFilter", {}) if isinstance(item, dict) else {}
+        return {
+            "tick_size": self._as_float(price_filter.get("tickSize")),
+            "min_price": self._as_float(price_filter.get("minPrice")),
+            "max_price": self._as_float(price_filter.get("maxPrice")),
+            "qty_step": self._as_float(lot_size.get("qtyStep")),
+            "min_qty": self._as_float(lot_size.get("minOrderQty")),
+            "max_qty": self._as_float(lot_size.get("maxOrderQty")),
+        }
+
+    def _normalize_price(self, price: float, instrument: dict[str, Any], *, side: str, purpose: str) -> float:
+        value = self._as_float(price)
+        tick_size = self._as_float(instrument.get("tick_size")) or 0.0
+        if value <= 0:
+            raise ValueError(f"{purpose} price is invalid.")
+        if tick_size > 0:
+            decimals = max(0, self._tick_decimals(tick_size))
+            if side == "BUY" and purpose == "entry":
+                value = math.floor(value / tick_size) * tick_size
+            elif side == "SELL" and purpose == "entry":
+                value = math.ceil(value / tick_size) * tick_size
+            else:
+                value = round(value / tick_size) * tick_size
+            value = round(value, decimals)
+        min_price = self._as_float(instrument.get("min_price"))
+        max_price = self._as_float(instrument.get("max_price"))
+        if min_price and value < min_price:
+            raise ValueError(f"{purpose} price {value} is below Bybit minimum {min_price}.")
+        if max_price and value > max_price:
+            raise ValueError(f"{purpose} price {value} is above Bybit maximum {max_price}.")
+        return value
+
+    def _validate_signal_price_distance(self, symbol: str, market_price: float, price: float, *, kind: str = "entry") -> None:
+        if market_price <= 0 or price <= 0:
+            return
+        deviation = abs(price - market_price) / market_price
+        if deviation > self.settings.max_signal_price_deviation_pct:
+            raise ValueError(
+                f"{kind} price {price} for {symbol} deviates too far from market price {market_price:.6f} "
+                f"(>{self.settings.max_signal_price_deviation_pct * 100:.0f}%)."
+            )
+
+    @staticmethod
+    def _tick_decimals(tick_size: float) -> int:
+        text = f"{tick_size:.20f}".rstrip("0")
+        if "." not in text:
+            return 0
+        return len(text.split(".", 1)[1])
+
+    @staticmethod
+    def _format_price(price: float, instrument: dict[str, Any]) -> str:
+        tick_size = BybitService._as_float(instrument.get("tick_size"))
+        if tick_size > 0:
+            decimals = max(0, BybitService._tick_decimals(tick_size))
+            quant = Decimal(str(tick_size))
+            rounded = (Decimal(str(price)) / quant).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * quant
+            return format(rounded.quantize(Decimal(10) ** -decimals), "f")
+        return str(price)
 
     @staticmethod
     def _stop_loss_pct(signal: ParsedSignal) -> float:

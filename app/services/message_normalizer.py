@@ -39,6 +39,8 @@ class MessageNormalizer:
                 "If the message is a close/exit instruction, set kind to CLOSE and only include the symbol if present.",
                 "If the message is not actionable, set kind to UNKNOWN.",
                 "Normalize all numbers as JSON numbers.",
+                "Treat comma as a thousands separator and dot as a decimal separator. Example: 77,668 means 77668 and 9.295 means 9.295.",
+                "Never truncate values at a comma.",
                 "Symbol should be the base asset only when the quote asset is obvious, otherwise use the exact symbol from the message.",
                 "Ignore emojis and decorative characters.",
                 "Handle Vietnamese and English variants, including Xu huong tang/giam, Vung tham chieu, Nguong rui ro, Khang cu, Ho tro.",
@@ -188,6 +190,8 @@ class MessageNormalizer:
         try:
             if value in (None, "", False):
                 return 0.0
+            if isinstance(value, str):
+                value = value.replace(",", "").strip()
             return float(value)
         except (TypeError, ValueError):
             return 0.0
