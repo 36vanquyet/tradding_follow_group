@@ -48,6 +48,7 @@ def get_db():
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: Session = Depends(get_db)):
     repo = Repository(db)
+    web_base_url = str(request.base_url).rstrip("/")
     return templates.TemplateResponse(
         "index.html",
         {
@@ -57,7 +58,7 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
             "orders": repo.list_orders(20),
             "message_summary": message_store.summary(),
             "messages": message_store.list_messages(50),
-            "web_base_url": settings.web_base_url,
+            "web_base_url": web_base_url,
         },
     )
 
