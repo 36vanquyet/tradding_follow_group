@@ -47,6 +47,16 @@ class TelegramRuntime:
                     )
                 except Exception as exc:
                     await self.notifier.send(f"Telegram message store error: {exc}")
+                if self.settings.telegram_notify_raw_messages and raw_message.strip():
+                    preview = " ".join(raw_message.strip().split())
+                    if len(preview) > 140:
+                        preview = preview[:137] + "..."
+                    await self.notifier.send(
+                        f"Telegram event received\n"
+                        f"Source: {getattr(chat, 'title', str(event.chat_id))}\n"
+                        f"Message ID: {telegram_message_id}\n"
+                        f"Preview: {preview}"
+                    )
                 db = SessionLocal()
                 try:
                     await self.order_manager.process_message(

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     telegram_source_chat_ids: str = ""
     telegram_bot_token: str = ""
     telegram_notify_chat_id: str = ""
+    telegram_notify_raw_messages: bool = True
 
     bybit_api_key: str = ""
     bybit_api_secret: str = ""

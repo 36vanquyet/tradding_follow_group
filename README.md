@@ -58,6 +58,7 @@ The bot also attempts to switch Bybit to isolated mode before placing the order.
    - `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`
    - `TELEGRAM_SOURCE_CHAT_IDS`
    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_NOTIFY_CHAT_ID`
+   - `TELEGRAM_NOTIFY_RAW_MESSAGES=true` if you want a notification for every incoming source message
    - `TELEGRAM_MESSAGE_STORE_PATH` if you want to move the JSON file
    - `LLM_PROVIDER=groq`
    - `GROQ_API_KEY` and optionally `GROQ_MODEL`
